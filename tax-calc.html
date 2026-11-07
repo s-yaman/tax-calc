@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Tax Calculator</title>
+<style>
+  :root { --bg: #ffffff; --fg: #1d1d1f; --muted: #5c5c66; --line: #c9c9cf; --red: #b3000f; --card: #f6f6f8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17171a; --fg: #ececf0; --muted: #a3a3ad; --line: #44444c; --card: #202024; --red: #e30a17; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 64px 24px 24px; background: var(--bg); color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .home-btn {
+    position: fixed; top: 16px; left: 16px; z-index: 10; padding: 8px 14px;
+    border: 1.5px solid var(--red); border-radius: 6px; background: var(--bg); color: var(--red);
+    font: 600 0.9rem system-ui, -apple-system, "Segoe UI", sans-serif; text-decoration: none;
+  }
+  .home-btn:hover { background: var(--red); color: #fff; }
+  .home-btn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  main { max-width: 600px; margin: 0 auto; }
+  h1 { margin: 0 0 8px; color: var(--red); font-size: 1.9rem; text-align: center; }
+  .note { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; text-align: center; }
+  label { display: block; margin-bottom: 6px; font-weight: 600; }
+  .group { margin-bottom: 4px; }
+  .field { position: relative; }
+  .field .symbol { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  input[type="text"], select {
+    width: 100%; padding: 12px; font-size: 1.1rem;
+    border: 1.5px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg);
+  }
+  input[type="text"] { padding-left: 28px; }
+  input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--red); }
+  .error { min-height: 1.4em; margin: 6px 0 8px; color: var(--red); font-size: 0.9rem; }
+  .hint { display: block; margin: 4px 0 0; color: var(--muted); font-size: 0.8rem; }
+  .check { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; font-weight: 600; cursor: pointer; }
+  .mode { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 0 8px; }
+  .mode-opt { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-weight: 400; cursor: pointer; }
+  input[type="radio"] { width: 18px; height: 18px; margin: 0; accent-color: var(--red); cursor: pointer; }
+  .field.suffix .symbol { left: auto; right: 14px; }
+  .field.suffix input[type="text"] { padding-left: 12px; padding-right: 30px; }
+  input[type="checkbox"] { width: 20px; height: 20px; margin: 0; accent-color: var(--red); cursor: pointer; }
+  input[type="text"]:disabled { opacity: 0.5; cursor: not-allowed; }
+  button[type="submit"] {
+    width: 100%; padding: 12px; border: 1.5px solid var(--red); border-radius: 6px;
+    background: var(--red); color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+  button[type="submit"]:hover { background: transparent; color: var(--red); }
+  .results { margin-top: 24px; padding: 16px 20px; background: var(--card); border-radius: 8px; }
+  .results[hidden] { display: none; }
+  .results h2 { margin: 0 0 12px; font-size: 1.05rem; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 10px 6px; text-align: right; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+  th:first-child, td:first-child { text-align: left; }
+  td:first-child small { display: block; color: var(--muted); font-size: 0.8rem; }
+  .section th { padding-top: 18px; text-align: left; color: var(--red); font-size: 0.9rem; }
+  .subtotal td { font-weight: 700; }
+  .disclaimer { margin: 32px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+  .fine-print { margin: 12px 0 0; color: var(--muted); font-size: 0.8rem; }
+  .final td { font-size: 1.05rem; font-weight: 700; }
+  .final td small { font-weight: 400; }
+  dialog { width: min(92vw, 420px); padding: 20px 22px; border: 1.5px solid var(--red); border-radius: 10px; background: var(--bg); color: var(--fg); }
+  dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+  dialog h2 { margin: 0 0 8px; color: var(--red); font-size: 1.15rem; }
+  dialog p { margin: 0 0 18px; line-height: 1.5; }
+  .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+  .dialog-actions button { padding: 10px 16px; border: 1.5px solid var(--red); border-radius: 6px; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
+  #confirmNo { background: transparent; color: var(--red); }
+  #confirmNo:hover { background: var(--red); color: #fff; }
+  #confirmYes { background: var(--red); color: #fff; }
+  #confirmYes:hover { background: transparent; color: var(--red); }
+  .export-btn { margin-top: 16px; padding: 10px 18px; border: 1.5px solid var(--red); border-radius: 6px; background: transparent; color: var(--red); font-size: 0.95rem; font-weight: 700; cursor: pointer; }
+  .export-btn:hover { background: var(--red); color: #fff; }
+  .export-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 0.8rem; }
+  .print-only { display: none; }
+  @media print {
+    :root { --bg: #ffffff; --fg: #000000; --muted: #444444; --line: #bbbbbb; --card: #ffffff; }
+    body { padding: 0; }
+    .home-btn, .note, form, .export-btn, .export-hint { display: none !important; }
+    .results { margin-top: 0; padding: 0; }
+    .print-only { display: block; margin: 0 0 8px; color: var(--muted); font-size: 0.85rem; }
+    tr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+  <!-- <a class="home-btn" href="index.html">Home</a> -->
+
+  <main>
+    <h1>UK Tax Calculator</h1>
+    <p class="note">Choose a tax year and enter your salary, pension contribution and interest details for that tax year (6 April to 5 April)</p>
+
+    <form id="taxForm" novalidate>
+      <div class="group">
+        <label for="taxYear">Tax year</label>
+        <select id="taxYear" name="taxYear" required aria-describedby="yearError">
+          <option value="" selected disabled>Select tax year</option>
+        </select>
+        <div class="error" id="yearError" role="alert"></div>
+      </div>
+
+      <div class="group">
+        <label for="salary">Annual salary (£)</label>
+        <div class="field">
+          <span class="symbol" aria-hidden="true">£</span>
+          <input type="text" id="salary" name="salary" inputmode="decimal" autocomplete="off"
+                 placeholder="e.g. 45,000.00" aria-describedby="salaryError">
+        </div>
+        <div class="error" id="salaryError" role="alert"></div>
+      </div>
+
+      <div class="group">
+        <label for="pension">Your contribution to your Work pension scheme</label>
+        <div class="mode" role="radiogroup" aria-label="Enter the pension contribution as">
+          <label class="mode-opt"><input type="radio" name="pensionMode" value="amount" checked> Amount (£ a year)</label>
+          <label class="mode-opt"><input type="radio" name="pensionMode" value="percent"> % of annual salary</label>
+        </div>
+        <div class="field" id="pensionField">
+          <span class="symbol" id="pensionSymbol" aria-hidden="true">£</span>
+          <input type="text" id="pension" name="pension" inputmode="decimal" autocomplete="off"
+                 placeholder="e.g. 2,000.00" aria-describedby="pensionHint pensionError">
+        </div>
+        <small class="hint" id="pensionHint">Annual amount. Leave blank if you pay nothing in.</small>
+        <div class="error" id="pensionError" role="alert"></div>
+      </div>
+
+      <div class="group">
+        <label class="check" for="hasInterest">
+          <input type="checkbox" id="hasInterest" name="hasInterest">
+          Did you earn interest on savings?
+        </label>
+        <label for="interest">Savings interest (£)</label>
+        <div class="field">
+          <span class="symbol" aria-hidden="true">£</span>
+          <input type="text" id="interest" name="interest" inputmode="decimal" autocomplete="off"
+                 placeholder="e.g. 750.00" aria-describedby="interestError" disabled>
+        </div>
+        <div class="error" id="interestError" role="alert"></div>
+      </div>
+
+      <button type="submit">Calculate</button>
+    </form>
+
+    <section class="results" id="results" aria-live="polite" hidden>
+      <p class="print-only" id="printDate"></p>
+      <h2 id="resultsTitle"></h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th scope="col">Band</th><th scope="col">Income in band</th><th scope="col">Amount</th></tr>
+          </thead>
+          <tbody id="bandRows"></tbody>
+        </table>
+      </div>
+      <p class="fine-print">National Insurance is the employee (Class 1) rate, worked out on your full annual salary, so it is not reduced by pension contributions. Payroll calculates it each pay period, so real payslips can differ slightly.</p>
+      <button type="button" class="export-btn" id="exportBtn">Export to PDF</button>
+      <small class="export-hint">This opens your print window. Choose “Save as PDF” as the destination.</small>
+    </section>
+    <p class="disclaimer"><strong>Disclaimer:</strong> This calculator gives an estimate for illustration only and is not tax, financial or legal advice. It uses the standard Personal Allowance and the Income Tax rates for England, Wales and Northern Ireland, and employee (Class 1, category A) National Insurance. Savings interest uses the Personal Savings Allowance for the selected tax year, and any interest above it is taxed at the basic or higher rate depending on which band your taxable income falls in; the starting rate for savings and interest that spans two bands are not included. Pension contributions are assumed to come out of your pay before Income Tax but not before National Insurance; relief at source and salary sacrifice arrangements are not included. It does not include Scottish rates, student loan repayments, benefits in kind, other income or any tax code adjustments. Your actual pay may differ. Please check the current rates on GOV.UK or speak to a qualified adviser.</p>
+  </main>
+
+<dialog id="confirmDialog" aria-labelledby="confirmTitle">
+    <h2 id="confirmTitle">Please confirm</h2>
+    <p id="confirmText"></p>
+    <div class="dialog-actions">
+      <button type="button" id="confirmNo">No, change it</button>
+      <button type="button" id="confirmYes">Yes, continue</button>
+    </div>
+  </dialog>
+
+<script>
+  (function () {
+    var MIN = 1, MAX = 100000;
+
+    // ------------------------------------------------------------------
+    // TAX TABLES: one complete, self-contained table per tax year.
+    //
+    // To add a new tax year, copy a whole year block below, give it a new key and
+    // label, and change the figures. Nothing else in the page needs editing: the
+    // dropdown and the calculations are both built from this list.
+    //
+    // incomeTax / nationalInsurance: each band covers income above "from", up to
+    //   and including "to" (use Infinity for the top band).
+    // savings: Personal Savings Allowance. "higherRateAbove" is the taxable income
+    //   above which someone counts as a higher rate taxpayer.
+    // ------------------------------------------------------------------
+    var TAX_YEARS = {
+      'current': {
+        label: 'Current tax year',
+        incomeTax: [
+          { name: 'Personal allowance', rate: 0,    from: 0,     to: 12570 },
+          { name: 'Basic rate',         rate: 0.20, from: 12570, to: 50270 },
+          { name: 'Higher rate',        rate: 0.40, from: 50270, to: 125140 }
+        ],
+        nationalInsurance: [
+          { name: 'National Insurance', rate: 0,    from: 0,     to: 12570 },
+          { name: 'National Insurance', rate: 0.08, from: 12570, to: 50270 },
+          { name: 'National Insurance', rate: 0.02, from: 50270, to: Infinity }
+        ],
+        savings: { higherRateAbove: 50270, basicAllowance: 1000, higherAllowance: 500, basicRate: 0.20, higherRate: 0.40 }
+      },
+
+      '2025-26': {
+        label: '2025/2026',
+        incomeTax: [
+          { name: 'Personal allowance', rate: 0,    from: 0,     to: 12570 },
+          { name: 'Basic rate',         rate: 0.20, from: 12570, to: 50270 },
+          { name: 'Higher rate',        rate: 0.40, from: 50270, to: 125140 }
+        ],
+        nationalInsurance: [
+          { name: 'National Insurance', rate: 0,    from: 0,     to: 12570 },
+          { name: 'National Insurance', rate: 0.08, from: 12570, to: 50270 },
+          { name: 'National Insurance', rate: 0.02, from: 50270, to: Infinity }
+        ],
+        savings: { higherRateAbove: 50270, basicAllowance: 1000, higherAllowance: 500, basicRate: 0.20, higherRate: 0.40 }
+      }
+    };
+
+    var form = document.getElementById('taxForm');
+    var yearSelect = document.getElementById('taxYear');
+    Object.keys(TAX_YEARS).forEach(function (key) {
+      var option = document.createElement('option');
+      option.value = key;
+      option.textContent = TAX_YEARS[key].label;
+      yearSelect.appendChild(option);
+    });
+    var yearError = document.getElementById('yearError');
+    var input = document.getElementById('salary');
+    var errorEl = document.getElementById('salaryError');
+    var results = document.getElementById('results');
+    var resultsTitle = document.getElementById('resultsTitle');
+    var bandRows = document.getElementById('bandRows');
+    var confirmDialog = document.getElementById('confirmDialog');
+    var confirmText = document.getElementById('confirmText');
+    var confirmYes = document.getElementById('confirmYes');
+    var confirmNo = document.getElementById('confirmNo');
+    var pensionInput = document.getElementById('pension');
+    var pensionError = document.getElementById('pensionError');
+    var pensionField = document.getElementById('pensionField');
+    var pensionSymbol = document.getElementById('pensionSymbol');
+    var pensionHint = document.getElementById('pensionHint');
+    var hasInterest = document.getElementById('hasInterest');
+    var interestInput = document.getElementById('interest');
+    var interestError = document.getElementById('interestError');
+    var exportBtn = document.getElementById('exportBtn');
+    var printDate = document.getElementById('printDate');
+    var pdfTitle = document.title;
+
+    var gbp = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
+    var gbp0 = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
+    var plain = new Intl.NumberFormat('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function round2(n) { return Math.round(n * 100) / 100; }
+
+    // Turn the typed text into a number, or NaN if it is not a valid amount.
+    function parseAmount(text) {
+      var cleaned = text.replace(/[£,\s]/g, '');
+      if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) { return NaN; }
+      return Number(cleaned);
+    }
+
+    // Returns an error message, or an empty string if the value is valid.
+    function validateSalary(text) {
+      if (text.trim() === '') { return 'Please enter your annual salary.'; }
+      var value = parseAmount(text);
+      if (isNaN(value)) { return 'Enter a valid amount, for example 45000 or 45,000.50.'; }
+      if (value <= MIN || value >= MAX) {
+        return 'Annual salary must be more than ' + gbp0.format(MIN) + ' and less than ' + gbp0.format(MAX) + '.';
+      }
+      return '';
+    }
+
+    function validateInterest(text) {
+      if (text.trim() === '') { return 'Please enter the amount of savings interest.'; }
+      var value = parseAmount(text);
+      if (isNaN(value)) { return 'Enter a valid amount, for example 750 or 1,250.50.'; }
+      if (value <= 0) { return 'Savings interest must be more than £0.'; }
+      return '';
+    }
+
+    // Optional field. Blank means no contribution; it cannot be more than the salary.
+    function pensionMode() {
+      return document.querySelector('input[name="pensionMode"]:checked').value;
+    }
+
+    // Turn typed text into a percentage, or NaN if it is not a valid one.
+    function parsePercent(text) {
+      var cleaned = text.replace(/[%\s]/g, '');
+      if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) { return NaN; }
+      return Number(cleaned);
+    }
+
+    // Optional field. Blank means no contribution. It can be an amount (not more than
+    // the salary) or a percentage of the salary (not more than 100%).
+    function validatePension(text) {
+      if (text.trim() === '') { return ''; }
+      if (pensionMode() === 'percent') {
+        var percent = parsePercent(text);
+        if (isNaN(percent)) { return 'Enter a valid percentage, for example 5 or 7.5.'; }
+        if (percent > 100) { return 'Percentage cannot be more than 100%.'; }
+        return '';
+      }
+      var value = parseAmount(text);
+      if (isNaN(value)) { return 'Enter a valid amount, for example 2000 or 2,000.50.'; }
+      var salary = parseAmount(input.value);
+      if (!isNaN(salary) && value > salary) {
+        return 'Pension contribution cannot be more than your annual salary.';
+      }
+      return '';
+    }
+
+    // The contribution in pounds. A percentage is turned into an amount first, so the
+    // rest of the calculation always works from the amount. "percent" is null for amounts.
+    function pensionDetails(salary) {
+      var text = pensionInput.value;
+      if (text.trim() === '') { return { amount: 0, percent: null }; }
+      if (pensionMode() === 'percent') {
+        var percent = parsePercent(text);
+        return { amount: round2(salary * percent / 100), percent: percent };
+      }
+      return { amount: parseAmount(text), percent: null };
+    }
+
+    function validateYear() {
+      return yearSelect.value === '' ? 'Please select a tax year.' : '';
+    }
+
+    function setError(field, el, message) {
+      el.textContent = message;
+      field.setAttribute('aria-invalid', message ? 'true' : 'false');
+    }
+
+    // Amount for each band, then the total.
+    function calculate(salary, bands) {
+      var rows = bands.map(function (band, i) {
+        var income = Math.max(0, Math.min(salary, band.to) - band.from);
+        var range;
+        if (band.to === Infinity) { range = 'Over ' + gbp0.format(band.from); }
+        else if (i === 0 || band.from === 0) { range = 'Up to ' + gbp0.format(band.to); }
+        else { range = gbp0.format(band.from + 1) + ' to ' + gbp0.format(band.to); }
+        return {
+          name: band.name,
+          rate: band.rate,
+          range: range,
+          income: round2(income),
+          amount: round2(income * band.rate)
+        };
+      });
+      var total = round2(rows.reduce(function (sum, r) { return sum + r.amount; }, 0));
+      return { rows: rows, total: total };
+    }
+
+    function cell(text) {
+      var el = document.createElement('td');
+      el.textContent = text;
+      return el;
+    }
+
+    function addSection(title) {
+      var tr = document.createElement('tr');
+      tr.className = 'section';
+      var th = document.createElement('th');
+      th.colSpan = 3;
+      th.scope = 'colgroup';
+      th.textContent = title;
+      tr.appendChild(th);
+      bandRows.appendChild(tr);
+    }
+
+    function addBandRows(rows) {
+      rows.forEach(function (r) {
+        var tr = document.createElement('tr');
+        var first = document.createElement('td');
+        first.appendChild(document.createTextNode(r.name + ' (' + parseFloat((r.rate * 100).toFixed(2)) + '%)'));
+        var small = document.createElement('small');
+        small.textContent = r.range;
+        first.appendChild(small);
+        tr.appendChild(first);
+        tr.appendChild(cell(gbp.format(r.income)));
+        tr.appendChild(cell(gbp.format(r.amount)));
+        bandRows.appendChild(tr);
+      });
+    }
+
+    function addSubtotal(label, amount, note) {
+      var tr = document.createElement('tr');
+      tr.className = 'subtotal';
+      var first = cell(label);
+      if (note) {
+        var small = document.createElement('small');
+        small.textContent = note;
+        first.appendChild(small);
+      }
+      tr.appendChild(first);
+      tr.appendChild(cell(''));
+      tr.appendChild(cell(gbp.format(amount)));
+      bandRows.appendChild(tr);
+    }
+
+    // Tax on savings interest, using the Personal Savings Allowance for the salary's band.
+    function calculateSavings(salary, interest, year) {
+      var cfg = year.savings;
+      var higher = salary > year.savings.higherRateAbove;
+      var allowance = higher ? cfg.higherAllowance : cfg.basicAllowance;
+      var rate = higher ? cfg.higherRate : cfg.basicRate;
+      var taxable = round2(Math.max(0, interest - allowance));
+      var payer = higher ? 'Higher rate taxpayer' : 'Basic rate taxpayer';
+      return {
+        rows: [
+          { name: 'Personal Savings Allowance', rate: 0, range: payer + ': first ' + gbp0.format(allowance),
+            income: round2(Math.min(interest, allowance)), amount: 0 },
+          { name: 'Taxable savings interest', rate: rate, range: 'Interest over ' + gbp0.format(allowance),
+            income: taxable, amount: round2(taxable * rate) }
+        ],
+        total: round2(taxable * rate)
+      };
+    }
+
+    function joinList(items) {
+      if (items.length < 2) { return items.join(''); }
+      return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
+    }
+
+    function addFinalRow(label, note, amount) {
+      var tr = document.createElement('tr');
+      tr.className = 'final';
+      var first = document.createElement('td');
+      first.appendChild(document.createTextNode(label));
+      var small = document.createElement('small');
+      small.textContent = note;
+      first.appendChild(small);
+      tr.appendChild(first);
+      tr.appendChild(cell(''));
+      tr.appendChild(cell(gbp.format(amount)));
+      bandRows.appendChild(tr);
+    }
+
+    function render(yearKey, salary, interest, pension, pensionPercent) {
+      var year = TAX_YEARS[yearKey];
+      // Income Tax is worked out on salary less the pension contribution.
+      var taxable = round2(salary - pension);
+      var tax = calculate(taxable, year.incomeTax);
+      // National Insurance is worked out on the full annual salary.
+      var ni = calculate(salary, year.nationalInsurance);
+      var savings = interest === null ? null : calculateSavings(taxable, interest, year);
+      var net = round2(salary - pension - tax.total - ni.total - (savings ? savings.total : 0));
+
+      resultsTitle.textContent = year.label + ': salary of ' + gbp.format(salary) +
+        (pension > 0 ? ', pension contribution of ' + (pensionPercent !== null ? pensionPercent + '% (' + gbp.format(pension) + ')' : gbp.format(pension)) : '') +
+        (savings ? ', savings interest of ' + gbp.format(interest) : '');
+      bandRows.innerHTML = '';
+
+      addSection('Income Tax');
+      if (pension > 0) {
+        var tr = document.createElement('tr');
+        var first = document.createElement('td');
+        first.appendChild(document.createTextNode('Taxable income'));
+        var small = document.createElement('small');
+        small.textContent = 'Annual salary less pension contribution';
+        first.appendChild(small);
+        tr.appendChild(first);
+        tr.appendChild(cell(gbp.format(taxable)));
+        tr.appendChild(cell(''));
+        bandRows.appendChild(tr);
+      }
+      addBandRows(tax.rows);
+      addSubtotal('Total Income Tax', tax.total);
+
+      addSection('National Insurance');
+      addBandRows(ni.rows);
+      addSubtotal('Total National Insurance', ni.total);
+
+      if (savings) {
+        addSection('Tax on savings');
+        addBandRows(savings.rows);
+        addSubtotal('Total tax on savings interest', savings.total);
+      }
+
+      if (pension > 0) {
+        addSection('Pension');
+        addSubtotal('Work pension contribution', pension,
+          pensionPercent !== null ? pensionPercent + '% of annual salary' : '');
+      }
+
+      var parts = ['Income Tax', 'National Insurance'];
+      if (pension > 0) { parts.push('pension contribution'); }
+      if (savings) { parts.push('tax on savings interest'); }
+      var note = 'after ' + joinList(parts);
+      addSection('Salary after Tax');
+      addFinalRow('Annual salary after tax', note, net);
+      addFinalRow('Monthly salary after tax', note, round2(net / 12));
+      printDate.textContent = 'Calculated on ' +
+        new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      pdfTitle = 'UK Income Tax calculation - ' + year.label.replace(/\//g, '-');
+      results.hidden = false;
+    }
+
+    // Export to PDF: the print window offers "Save as PDF"; the page's print styles show only the results.
+    var originalTitle = document.title;
+    exportBtn.addEventListener('click', function () {
+      document.title = pdfTitle;
+      window.print();
+    });
+    window.addEventListener('afterprint', function () { document.title = originalTitle; });
+
+    // Money fields: tidy the display when leaving, plain digits when editing.
+    function attachAmountField(field, errEl, validator) {
+      field.addEventListener('blur', function () {
+        if (field.disabled) { return; }
+        var value = parseAmount(field.value);
+        if (!isNaN(value)) { field.value = plain.format(value); }
+        if (field.value.trim() !== '') { setError(field, errEl, validator(field.value)); }
+      });
+      field.addEventListener('focus', function () {
+        field.value = field.value.replace(/,/g, '');
+      });
+      field.addEventListener('input', function () {
+        if (field.getAttribute('aria-invalid') === 'true') { setError(field, errEl, validator(field.value)); }
+      });
+    }
+    attachAmountField(input, errorEl, validateSalary);
+    attachAmountField(interestInput, interestError, validateInterest);
+    // The pension box can hold an amount or a percentage, so it has its own handlers.
+    pensionInput.addEventListener('blur', function () {
+      if (pensionMode() === 'percent') {
+        var percent = parsePercent(pensionInput.value);
+        if (!isNaN(percent)) { pensionInput.value = String(percent); }
+      } else {
+        var amount = parseAmount(pensionInput.value);
+        if (!isNaN(amount)) { pensionInput.value = plain.format(amount); }
+      }
+      if (pensionInput.value.trim() !== '') { setError(pensionInput, pensionError, validatePension(pensionInput.value)); }
+    });
+    pensionInput.addEventListener('focus', function () {
+      pensionInput.value = pensionInput.value.replace(/,/g, '');
+    });
+    pensionInput.addEventListener('input', function () {
+      if (pensionInput.getAttribute('aria-invalid') === 'true') { setError(pensionInput, pensionError, validatePension(pensionInput.value)); }
+    });
+    // Switching between amount and percentage clears the box, so "5" is never read the wrong way.
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="pensionMode"]'), function (radio) {
+      radio.addEventListener('change', function () {
+        var isPercent = pensionMode() === 'percent';
+        pensionSymbol.textContent = isPercent ? '%' : '£';
+        pensionField.classList.toggle('suffix', isPercent);
+        pensionInput.placeholder = isPercent ? 'e.g. 5' : 'e.g. 2,000.00';
+        pensionHint.textContent = isPercent
+          ? 'Percentage of your annual salary. Leave blank if you pay nothing in.'
+          : 'Annual amount. Leave blank if you pay nothing in.';
+        pensionInput.value = '';
+        setError(pensionInput, pensionError, '');
+        results.hidden = true;
+      });
+    });
+    // If the salary changes, check the pension amount against it again.
+    function recheckPension() {
+      if (pensionInput.value.trim() !== '') { setError(pensionInput, pensionError, validatePension(pensionInput.value)); }
+    }
+    input.addEventListener('input', recheckPension);
+    input.addEventListener('blur', recheckPension);
+
+    // The interest box is only usable while the checkbox is ticked.
+    function syncInterestField() {
+      interestInput.disabled = !hasInterest.checked;
+      if (!hasInterest.checked) {
+        interestInput.value = '';
+        setError(interestInput, interestError, '');
+      }
+    }
+    hasInterest.addEventListener('change', function () {
+      syncInterestField();
+      results.hidden = true;
+      if (hasInterest.checked) { interestInput.focus(); }
+    });
+    syncInterestField();
+
+    yearSelect.addEventListener('change', function () {
+      setError(yearSelect, yearError, '');
+      results.hidden = true;
+    });
+
+    // Ask the person to confirm; run onYes if they do, onNo if they do not.
+    function askToConfirm(message, onYes, onNo) {
+      if (typeof confirmDialog.showModal !== 'function') {
+        if (window.confirm(message)) { onYes(); } else { onNo(); }
+        return;
+      }
+      confirmText.textContent = message;
+      confirmYes.onclick = function () { confirmDialog.close(); onYes(); };
+      confirmNo.onclick = function () { confirmDialog.close(); onNo(); };
+      confirmDialog.oncancel = function () { onNo(); };   // Esc key counts as "no"
+      confirmDialog.showModal();
+    }
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var yearMsg = validateYear();
+      var salaryMsg = validateSalary(input.value);
+      var pensionMsg = validatePension(pensionInput.value);
+      var interestMsg = hasInterest.checked ? validateInterest(interestInput.value) : '';
+      setError(yearSelect, yearError, yearMsg);
+      setError(input, errorEl, salaryMsg);
+      setError(pensionInput, pensionError, pensionMsg);
+      setError(interestInput, interestError, interestMsg);
+      if (yearMsg || salaryMsg || pensionMsg || interestMsg) {
+        results.hidden = true;
+        (yearMsg ? yearSelect : salaryMsg ? input : pensionMsg ? pensionInput : interestInput).focus();
+        return;
+      }
+      var salary = parseAmount(input.value);
+      var pensionInfo = pensionDetails(salary);
+      var pension = pensionInfo.amount;
+      var interest = hasInterest.checked ? parseAmount(interestInput.value) : null;
+      var yearKey = yearSelect.value;
+      var calculateNow = function () { render(yearKey, salary, interest, pension, pensionInfo.percent); };
+
+      // More than 10% of salary: ask first. A typed percentage is compared directly;
+      // an amount is compared in pence to avoid rounding errors.
+      var overTenPercent = pensionInfo.percent !== null
+        ? pensionInfo.percent > 10
+        : Math.round(pension * 100) * 10 > Math.round(salary * 100);
+      if (overTenPercent) {
+        results.hidden = true;
+        var percent = pensionInfo.percent !== null ? pensionInfo.percent : Math.round(pension / salary * 1000) / 10;
+        askToConfirm(
+          'Your pension contribution of ' + gbp.format(pension) + ' is ' + percent +
+          '% of your annual salary of ' + gbp.format(salary) + '. Is this correct?',
+          calculateNow,
+          function () { pensionInput.focus(); }
+        );
+        return;
+      }
+      calculateNow();
+    });
+  })();
+</script>
+</body>
+</html>
