@@ -64,6 +64,7 @@
   .total-highlight td:first-child { border-left: 4px solid var(--red); }
   .total-highlight td small { font-weight: 400; }
   .disclaimer { margin: 32px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+  .disclaimer + .disclaimer { margin-top: 12px; padding-top: 0; border-top: 0; }
   .fine-print { margin: 12px 0 0; color: var(--muted); font-size: 0.8rem; }
   .final td { font-size: 1.05rem; font-weight: 700; }
   .final td small { font-weight: 400; }
@@ -164,6 +165,7 @@
       <button type="button" class="export-btn" id="exportBtn">Export to PDF</button>
       <small class="export-hint">This opens your print window. Choose “Save as PDF” as the destination.</small>
     </section>
+    <p class="disclaimer privacy"><strong>Privacy:</strong> The figures you enter are calculated in your browser and are not sent to, or stored by, this website. The page uses no cookies, analytics or tracking. The site is hosted on GitHub Pages, which, like most web hosts, logs visitors’ IP addresses for security purposes. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub’s privacy statement</a> for details.</p>
     <p class="disclaimer"><strong>Disclaimer:</strong> This calculator gives an estimate for illustration only and is not tax, financial or legal advice. It uses the standard Personal Allowance and the Income Tax rates for England, Wales and Northern Ireland, and employee (Class 1, category A) National Insurance. Savings interest uses the Personal Savings Allowance for the selected tax year, and any interest above it is taxed at the basic or higher rate depending on which band your taxable income falls in; the starting rate for savings and interest that spans two bands are not included. Pension contributions are assumed to come out of your pay before Income Tax but not before National Insurance; relief at source and salary sacrifice arrangements are not included. It does not include Scottish rates, student loan repayments, benefits in kind, other income or any tax code adjustments. Your actual pay may differ. Please check the current rates on GOV.UK or speak to a qualified adviser.</p>
   </main>
 
