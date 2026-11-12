@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UK Tax Calculator</title>
 <style>
-  :root { --bg: #ffffff; --fg: #1d1d1f; --muted: #5c5c66; --line: #c9c9cf; --red: #b3000f; --card: #f6f6f8; }
+  :root { --bg: #ffffff; --fg: #1d1d1f; --muted: #5c5c66; --line: #c9c9cf; --red: #b3000f; --card: #f6f6f8; --highlight: #fbe3e6; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #17171a; --fg: #ececf0; --muted: #a3a3ad; --line: #44444c; --card: #202024; --red: #e30a17; }
+    :root { --bg: #17171a; --fg: #ececf0; --muted: #a3a3ad; --line: #44444c; --card: #202024; --red: #e30a17; --highlight: #4a1a20; }
   }
   * { box-sizing: border-box; }
   body {
@@ -60,6 +60,9 @@
   td:first-child small { display: block; color: var(--muted); font-size: 0.8rem; }
   .section th { padding-top: 18px; text-align: left; color: var(--red); font-size: 0.9rem; }
   .subtotal td { font-weight: 700; }
+  .total-highlight td { background: var(--highlight); font-size: 1.1rem; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .total-highlight td:first-child { border-left: 4px solid var(--red); }
+  .total-highlight td small { font-weight: 400; }
   .disclaimer { margin: 32px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
   .fine-print { margin: 12px 0 0; color: var(--muted); font-size: 0.8rem; }
   .final td { font-size: 1.05rem; font-weight: 700; }
@@ -79,7 +82,7 @@
   .export-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 0.8rem; }
   .print-only { display: none; }
   @media print {
-    :root { --bg: #ffffff; --fg: #000000; --muted: #444444; --line: #bbbbbb; --card: #ffffff; }
+    :root { --bg: #ffffff; --fg: #000000; --muted: #444444; --line: #bbbbbb; --card: #ffffff; --highlight: #eeeeee; }
     body { padding: 0; }
     .home-btn, .note, form, .export-btn, .export-hint { display: none !important; }
     .results { margin-top: 0; padding: 0; }
@@ -115,6 +118,20 @@
       </div>
 
       <div class="group">
+        <label class="check" for="hasInterest">
+          <input type="checkbox" id="hasInterest" name="hasInterest">
+          Did you earn interest on savings?
+        </label>
+        <label for="interest">Savings interest (£)</label>
+        <div class="field">
+          <span class="symbol" aria-hidden="true">£</span>
+          <input type="text" id="interest" name="interest" inputmode="decimal" autocomplete="off"
+                 placeholder="e.g. 750.00" aria-describedby="interestError" disabled>
+        </div>
+        <div class="error" id="interestError" role="alert"></div>
+      </div>
+
+      <div class="group">
         <label for="pension">Your contribution to your Work pension scheme</label>
         <div class="mode" role="radiogroup" aria-label="Enter the pension contribution as">
           <label class="mode-opt"><input type="radio" name="pensionMode" value="amount" checked> Amount (£ a year)</label>
@@ -127,20 +144,6 @@
         </div>
         <small class="hint" id="pensionHint">Annual amount. Leave blank if you pay nothing in.</small>
         <div class="error" id="pensionError" role="alert"></div>
-      </div>
-
-      <div class="group">
-        <label class="check" for="hasInterest">
-          <input type="checkbox" id="hasInterest" name="hasInterest">
-          Did you earn interest on savings?
-        </label>
-        <label for="interest">Savings interest (£)</label>
-        <div class="field">
-          <span class="symbol" aria-hidden="true">£</span>
-          <input type="text" id="interest" name="interest" inputmode="decimal" autocomplete="off"
-                 placeholder="e.g. 750.00" aria-describedby="interestError" disabled>
-        </div>
-        <div class="error" id="interestError" role="alert"></div>
       </div>
 
       <button type="submit">Calculate</button>
@@ -215,6 +218,36 @@
         nationalInsurance: [
           { name: 'National Insurance', rate: 0,    from: 0,     to: 12570 },
           { name: 'National Insurance', rate: 0.08, from: 12570, to: 50270 },
+          { name: 'National Insurance', rate: 0.02, from: 50270, to: Infinity }
+        ],
+        savings: { higherRateAbove: 50270, basicAllowance: 1000, higherAllowance: 500, basicRate: 0.20, higherRate: 0.40 }
+      },
+
+      '2024-25': {
+        label: '2024/2025',
+        incomeTax: [
+          { name: 'Personal allowance', rate: 0,    from: 0,     to: 12570 },
+          { name: 'Basic rate',         rate: 0.20, from: 12570, to: 50270 },
+          { name: 'Higher rate',        rate: 0.40, from: 50270, to: 125140 }
+        ],
+        nationalInsurance: [
+          { name: 'National Insurance', rate: 0,    from: 0,     to: 12570 },
+          { name: 'National Insurance', rate: 0.08, from: 12570, to: 50270 },
+          { name: 'National Insurance', rate: 0.02, from: 50270, to: Infinity }
+        ],
+        savings: { higherRateAbove: 50270, basicAllowance: 1000, higherAllowance: 500, basicRate: 0.20, higherRate: 0.40 }
+      },
+
+      '2023-24': {
+        label: '2023/2024',
+        incomeTax: [
+          { name: 'Personal allowance', rate: 0,    from: 0,     to: 12570 },
+          { name: 'Basic rate',         rate: 0.20, from: 12570, to: 50270 },
+          { name: 'Higher rate',        rate: 0.40, from: 50270, to: 125140 }
+        ],
+        nationalInsurance: [
+          { name: 'National Insurance', rate: 0,    from: 0,     to: 12570 },
+          { name: 'National Insurance', rate: 0.115, from: 12570, to: 50270 },
           { name: 'National Insurance', rate: 0.02, from: 50270, to: Infinity }
         ],
         savings: { higherRateAbove: 50270, basicAllowance: 1000, higherAllowance: 500, basicRate: 0.20, higherRate: 0.40 }
@@ -387,9 +420,9 @@
       });
     }
 
-    function addSubtotal(label, amount, note) {
+    function addSubtotal(label, amount, note, highlight) {
       var tr = document.createElement('tr');
-      tr.className = 'subtotal';
+      tr.className = highlight ? 'subtotal total-highlight' : 'subtotal';
       var first = cell(label);
       if (note) {
         var small = document.createElement('small');
@@ -455,7 +488,7 @@
         (savings ? ', savings interest of ' + gbp.format(interest) : '');
       bandRows.innerHTML = '';
 
-      addSection('Income Tax');
+      addSection('Tax on Earnings');
       if (pension > 0) {
         var tr = document.createElement('tr');
         var first = document.createElement('td');
@@ -469,17 +502,20 @@
         bandRows.appendChild(tr);
       }
       addBandRows(tax.rows);
-      addSubtotal('Total Income Tax', tax.total);
-
-      addSection('National Insurance');
-      addBandRows(ni.rows);
-      addSubtotal('Total National Insurance', ni.total);
+      // With no savings interest this is the Income Tax total, so it is highlighted too.
+      addSubtotal('Income Tax on Earnings', tax.total, '', !savings);
 
       if (savings) {
         addSection('Tax on savings');
         addBandRows(savings.rows);
         addSubtotal('Total tax on savings interest', savings.total);
+        addSubtotal('Total Income Tax', round2(tax.total + savings.total),
+          'Income Tax on Earnings plus tax on savings interest', true);
       }
+
+      addSection('National Insurance');
+      addBandRows(ni.rows);
+      addSubtotal('Total National Insurance', ni.total, '', true);
 
       if (pension > 0) {
         addSection('Pension');
@@ -609,7 +645,7 @@
       setError(interestInput, interestError, interestMsg);
       if (yearMsg || salaryMsg || pensionMsg || interestMsg) {
         results.hidden = true;
-        (yearMsg ? yearSelect : salaryMsg ? input : pensionMsg ? pensionInput : interestInput).focus();
+        (yearMsg ? yearSelect : salaryMsg ? input : interestMsg ? interestInput : pensionInput).focus();
         return;
       }
       var salary = parseAmount(input.value);
