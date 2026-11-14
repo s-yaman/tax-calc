@@ -409,6 +409,10 @@
 
     function addBandRows(rows) {
       rows.forEach(function (r) {
+        // A charged band (rate above 0%) is only shown if some income falls in it, so
+        // Basic rate, Higher rate, Taxable savings interest and National Insurance
+        // rows disappear when their income is zero. The 0% allowance rows always show.
+        if (r.rate > 0 && r.income === 0) { return; }
         var tr = document.createElement('tr');
         var first = document.createElement('td');
         first.appendChild(document.createTextNode(r.name + ' (' + parseFloat((r.rate * 100).toFixed(2)) + '%)'));
